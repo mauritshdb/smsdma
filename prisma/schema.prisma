@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  manajer
+  pelayanan
+  staf
+}
+
+enum Gender {
+  L
+  P
+}
+
+enum Education {
+  SD
+  SMP
+  SMA
+  SMK
+  D1
+  D2
+  D3
+  D4
+  S1
+  S2
+  S3
+}
+
+enum DocumentType {
+  KTP
+  KK
+  IJAZAH
+  SK
+  KONTRAK
+  SURAT_PENGANGKATAN
+  SURAT_MUTASI
+  SURAT_PENGUNDURAN_DIRI
+  LAINNYA
+}
+
+enum HistType {
+  TRANSFER
+  STATUS_CHANGE
+  EMPLOYEE_EXIT
+  DATA_UPDATE
+  EMPLOYEE_ADD
+  DOCUMENT_UPLOAD
+  DOCUMENT_DELETE
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+}
+
+model Employee {
+  id     Int    @id @default(autoincrement())
+  no     String @unique // nomor induk internal, mis. EMP-0001
+
+  // --- Data pribadi ---
+  nik        String?    @unique // Nomor Induk Kependudukan (16 digit)
+  nip        String?    @unique // NIP / nomor pegawai
+  name       String
+  gender     Gender
+  birthPlace String
+  birthDate  DateTime?
+  address    String    @db.Text
+  phone      String?
+  email      String?
+  maritalStatus     String?
+  field             String? // bidang: GURU, TENDIK, KEUANGAN, dst.
+  npwp              String?
+  ptkpStatus        String? // status PTKP, mis. TK/0, K/1
+  bankName          String?
+  bankAccountNo     String?
+  bankAccountName   String?
+  bpjsEmployment    String? // BPJS Ketenagakerjaan
+  bpjsHealth        String? // BPJS Kesehatan
+  extraData         Json? // header Excel tambahan yang tidak dikenal, disimpan apa adanya
+
+  // --- Pendidikan ---
+  education Education?
+  major     String?
+
+  // --- Kepegawaian ---
+  joinDate         DateTime
+  unit             String // unit sekolah, lihat lib/constants.ts
+  position         String // jabatan, mis. "Wali Kelas 3A", "Kepala TU"
+  fn               String // fungsi tugas: GURU / STAF / dst
+  employmentStatus String // status kepegawaian: PTT / PT / CAPEG-1 / dst
+  statusChangeDate DateTime? // tanggal perubahan status terakhir
+  exitDate         DateTime? // tanggal keluar (null jika masih aktif)
+  exitReason       String? // alasan keluar
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  documents Document[]
+  history   History[]
+
+  @@index([unit])
+  @@index([employmentStatus])
+  @@index([fn])
+  @@index([isActive])
+}
+
+model Document {
+  id         Int          @id @default(autoincrement())
+  employeeId Int
+  employee   Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  type       DocumentType
+  fileName   String // nama asli file
+  filePath   String // path relatif di dalam folder storage/documents
+  mimeType   String
+  size       Int // ukuran file dalam bytes
+  uploadedBy String
+  uploadedAt DateTime     @default(now())
+
+  @@index([employeeId])
+  @@index([type])
+}
+
+model History {
+  id          Int      @id @default(autoincrement())
+  employeeId  Int
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  type        HistType
+  oldValue    String
+  newValue    String
+  description String   @db.Text
+  by          String
+  at          DateTime @default(now())
+
+  @@index([employeeId])
+  @@index([type])
+}
+
+model Unit {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,5 @@
+node_modules/
+.next/
+.env
+storage/documents/*
+!storage/documents/.gitkeep
