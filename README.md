@@ -100,39 +100,6 @@ File asli (PDF/JPG/PNG, maks 10MB) disimpan di `storage/documents/{employeeId}/.
 | `GET /api/report/csv` | Unduh laporan sebagai CSV |
 | `GET /api/users` / `PATCH /api/users/:id` | Kelola pengguna (Manajer saja) |
 
-## ⚠️ Catatan keamanan prototipe (baca sebelum dipakai serius)
-
-Ini prototipe, bukan sistem produksi. Yang **sudah** dilakukan dengan benar:
-- Password di database di-hash dengan bcrypt (tidak plain text).
-- Validasi hak akses per role dilakukan di **server** (`lib/permissions.ts`), tidak hanya sembunyikan tombol di UI.
-
-Yang **belum** aman dan wajib diperbaiki sebelum dipakai nyata:
-- Tidak ada sesi/token asli. Setelah login, identitas pengguna dikirim lewat header
-  (`x-user-id`, `x-user-role`) yang **dipercaya begitu saja oleh server** — siapa pun yang
-  tahu cara mengubah header bisa berpura-pura jadi Manajer. Ganti dengan session/JWT
-  (misalnya pakai NextAuth.js) yang ditandatangani dan diverifikasi di server.
-- Tidak ada rate limiting untuk percobaan login.
-- Validasi input di API masih dasar (cek field wajib, panjang NIK); tambahkan validasi
-  format lebih ketat (mis. Zod) untuk email, NIK, NIP, nomor HP.
-- File upload disimpan langsung di disk server; untuk skala produksi pertimbangkan
-  object storage (S3-compatible) dan pemindaian antivirus.
-
-## Next.js dan database — perlu server sendiri atau tidak?
-
-**Next.js sendiri tidak menyediakan atau memerlukan database.** Next.js adalah framework untuk
-membangun frontend *dan* backend ringan (lewat API routes / route handlers) dalam satu proyek,
-tapi ia tidak "membawa" database apa pun secara built-in.
-
-- Kalau aplikasi Anda cuma menampilkan halaman statis atau dari data dummy di kode, Next.js
-  bisa berjalan tanpa database sama sekali (contoh prototipe sebelumnya, yang memakai localStorage).
-- Begitu Anda butuh data yang **tersimpan permanen, konsisten, dan bisa diakses banyak
-  pengguna sekaligus** (seperti sistem ini: data karyawan, dokumen, riwayat, akun pengguna),
-  Anda perlu database server yang berjalan terus (MySQL, PostgreSQL, dll) — Next.js API routes
-  di sini hanya bertindak sebagai jembatan: menerima request dari browser, lalu memanggil
-  database lewat driver/ORM (di proyek ini: **Prisma** yang tersambung ke MySQL lewat `DATABASE_URL`).
-
-Jadi: MySQL server-nya **harus ada dan berjalan sendiri** (di komputer Anda, Docker, atau layanan
-cloud) — Next.js hanya terhubung ke sana, bukan menggantikannya. Ini juga berarti server MySQL
 harus tetap menyala setiap kali aplikasi ini dipakai, tidak seperti versi awal yang memakai
 localStorage di browser (jalan tanpa server tambahan, tapi datanya hanya tersimpan
 per-browser dan tidak bisa dibagi antar pengguna).
